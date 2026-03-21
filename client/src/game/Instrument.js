@@ -174,6 +174,13 @@ export class InstrumentManager {
     synth.triggerRelease(note, Tone.now());
   }
 
+  /** Release all currently held notes on an instrument (e.g. when pattern is removed). */
+  releaseAll(instName) {
+    if (instName === 'drum') return;
+    const synth = this._synths[instName];
+    if (synth) synth.releaseAll(Tone.now());
+  }
+
   dispose() {
     for (const s of Object.values(this._synths)) s.dispose();
     for (const s of Object.values(this._drumSynths)) s.dispose();

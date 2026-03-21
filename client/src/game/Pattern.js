@@ -114,7 +114,10 @@ export class Pattern {
     for (const note of this.notes) {
       if (!note.isComplete) continue;
       events.push({ time: note.time, lane: note.lane, on: true });
-      events.push({ time: note.time + note.length, lane: note.lane, on: false });
+      // Clamp noteOff to the loop boundary so it is always caught by the
+      // wrap-around window check and never silently falls outside the range.
+      const noteOffTime = Math.min(note.time + note.length, this.seconds);
+      events.push({ time: noteOffTime, lane: note.lane, on: false });
     }
     events.sort((a, b) => a.time - b.time);
     return events;
