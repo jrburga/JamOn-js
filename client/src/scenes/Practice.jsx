@@ -301,6 +301,8 @@ case 'on_pattern_remove': {
   }
 
   function removePattern(id) {
+    const pat = plRef.current.getPattern(id);
+    if (pat) imRef.current?.releaseAll(pat.inst);
     plRef.current.removePattern(id);
     dispatch({ type: 'REMOVE_PATTERN', id });
     client?.sendAction('on_pattern_remove', { pattern_id: id });
@@ -310,6 +312,7 @@ case 'on_pattern_remove': {
     const pat = plRef.current.getPattern(id);
     if (!pat) return;
     const newQueued = !pat.queued;
+    if (!newQueued) imRef.current?.releaseAll(pat.inst);
     pat.setQueued(newQueued);
     dispatch({ type: 'UPDATE_PATTERN', id, updates: { queued: newQueued } });
   }
