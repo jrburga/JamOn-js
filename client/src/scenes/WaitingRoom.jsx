@@ -13,12 +13,8 @@ export default function WaitingRoom({ client, roomId, isHost, onStart }) {
   const [selectedInstSet, setSelectedInstSet] = useState(Object.keys(INSTRUMENT_SETS)[0]);
   const [starting, setStarting] = useState(false);
 
-  // Fetch current band members on mount
+  // Subscribe to room events
   useEffect(() => {
-    client.getBandMembers().then((members) => {
-      if (members) setBandMembers(members);
-    });
-
     const unsubscribe = client.onAction(({ event_type, action }) => {
       if (event_type === 'on_join') {
         // Re-fetch band members whenever someone joins
@@ -34,14 +30,19 @@ export default function WaitingRoom({ client, roomId, isHost, onStart }) {
     return unsubscribe;
   }, [client, onStart]);
 
-  // Register this client as a band member
+  // Register this client as a band member, then fetch the full list
   useEffect(() => {
-    client.join();
-    // Reflect back in local state immediately
+    // Optimistically add ourselves so the UI isn't blank while waiting
     setBandMembers((prev) => {
       const alreadyPresent = prev.some((m) => m.id === client.id);
       if (alreadyPresent) return prev;
       return [...prev, client.info];
+    });
+    // Join (posts to server), then sync the authoritative member list
+    client.join().then(() => {
+      client.getBandMembers().then((members) => {
+        if (members && members.length > 0) setBandMembers(members);
+      });
     });
   }, [client]);
 
