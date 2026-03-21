@@ -45,7 +45,11 @@ function reducer(state, action) {
       return { ...state, now: action.now };
 
     case 'ADD_PATTERN':
-      return { ...state, patterns: [action.pattern, ...state.patterns], editingPatternId: action.pattern.id };
+      return {
+        ...state,
+        patterns: [action.pattern, ...state.patterns],
+        editingPatternId: action.own ? action.pattern.id : state.editingPatternId,
+      };
 
     case 'UPDATE_PATTERN':
       return {
@@ -95,6 +99,7 @@ function reducer(state, action) {
 export default function Practice({ client, bandMembers = [], instSet = 'ROCK' }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [audioStarted, setAudioStarted] = useState(false);
+  const [players, setPlayers] = useState(bandMembers);
 
   // Refs — mutable game state that does NOT need to trigger renders
   const imRef     = useRef(null);   // InstrumentManager
@@ -227,12 +232,26 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
     };
   }, [handleKeyDown, handleKeyUp]);
 
+  // ── Announce presence to other players already in Practice ────────────────
+
+  useEffect(() => {
+    if (!client) return;
+    client.sendAction('on_player_join', client.info);
+  }, [client]);
+
   // ── Network actions ────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!client) return;
     const unsubscribe = client.onAction(({ event_type, action }) => {
       switch (event_type) {
+        case 'on_player_join': {
+          setPlayers((prev) => {
+            if (prev.some((p) => p.id === action.id)) return prev;
+            return [...prev, action];
+          });
+          break;
+        }
         case 'on_pattern_create': {
           const { pattern_id, inst, creator } = action;
           if (creator.id === client.id) break;
@@ -279,7 +298,7 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
     // Switch instrument
     instRef.current.setInst(instName);
 
-    dispatch({ type: 'ADD_PATTERN', pattern: { id, inst: instName, lockedIn: false, queued: false, notes: [], editing: true } });
+    dispatch({ type: 'ADD_PATTERN', pattern: { id, inst: instName, lockedIn: false, queued: false, notes: [], editing: true }, own: true });
 
     client?.sendAction('on_pattern_create', {
       pattern_id: id,
@@ -405,7 +424,7 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
             </div>
 
             {/* Virtual player tracks (remote players) */}
-            {bandMembers
+            {players
               .filter((m) => m.id !== client?.id)
               .map((member) => {
                 const vp = state.vplayers.find((v) => v.id === member.id) || {};

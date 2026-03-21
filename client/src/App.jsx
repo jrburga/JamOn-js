@@ -61,7 +61,14 @@ export default function App() {
       await client.connect(SERVER_URL, existingRoomId);
       setRoomId(existingRoomId);
       setIsHost(false);
-      setScene('waiting_room');
+      if (client.current_scene) {
+        // Session already started — jump straight in
+        setBandMembers(client.current_scene.band_members || []);
+        setInstSet(client.current_scene.instrument_set || 'ROCK');
+        setScene('practice');
+      } else {
+        setScene('waiting_room');
+      }
     } catch (e) {
       setError('Failed to connect to server.');
       console.error(e);

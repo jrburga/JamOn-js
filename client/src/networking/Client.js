@@ -27,6 +27,7 @@ export class Client {
     this.id = null;
     this.isHost = false;
     this.username = randomName();
+    this.current_scene = null;
     this._actionListeners = [];
   }
 
@@ -51,6 +52,7 @@ export class Client {
             if (res.success) {
               this.id = res.id;
               this.isHost = res.isHost;
+              this.current_scene = res.current_scene || null;
               resolve(res);
             } else {
               reject(new Error('Failed to join room'));

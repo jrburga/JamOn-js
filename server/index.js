@@ -20,7 +20,7 @@ const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
-// rooms[roomId] = { band_members, patterns, actions, host_id }
+// rooms[roomId] = { band_members, patterns, actions, host_id, current_scene }
 const rooms = {};
 
 function getRoom(roomId) {
@@ -30,6 +30,7 @@ function getRoom(roomId) {
       patterns: {},
       actions: {},
       host_id: null,
+      current_scene: null,
     };
   }
   return rooms[roomId];
@@ -75,6 +76,7 @@ io.on('connection', (socket) => {
       success: true,
       id: socket.id,
       isHost,
+      current_scene: room.current_scene,
     });
 
     // Notify everyone else that someone joined
@@ -122,6 +124,9 @@ io.on('connection', (socket) => {
   // Broadcast an action to all other clients in the room
   socket.on('action', (actionData) => {
     if (!currentRoom) return;
+    if (actionData.event_type === 'on_scene_change') {
+      rooms[currentRoom].current_scene = actionData.action;
+    }
     socket.to(currentRoom).emit('action', actionData);
   });
 
