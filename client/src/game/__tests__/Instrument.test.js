@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as Tone from 'tone';
 import {
   midiToNote,
   INSTRUMENT_SETS,
   TEMPOS,
   Instrument,
   InstrumentManager,
+  setTone,
 } from '../Instrument.js';
 
-// Tone.js is mocked globally in src/test/setup.js
+// Tone.js is mocked globally in src/test/setup.js.
+// Inject the mock before each test so InstrumentManager can use it.
+beforeEach(() => setTone(Tone));
 
 describe('midiToNote', () => {
   it('converts middle C (MIDI 60) to C4', () => {

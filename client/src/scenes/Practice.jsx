@@ -13,10 +13,8 @@
 import React, {
   useEffect, useRef, useCallback, useState, useReducer,
 } from 'react';
-import * as Tone from 'tone';
-
 import Track from '../components/Track.jsx';
-import { InstrumentManager, Instrument, INSTRUMENT_SETS, TEMPOS } from '../game/Instrument.js';
+import { setTone, InstrumentManager, Instrument, INSTRUMENT_SETS, TEMPOS } from '../game/Instrument.js';
 import { Pattern, PatternList } from '../game/Pattern.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -116,6 +114,8 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
   // ── Audio init ─────────────────────────────────────────────────────────────
 
   async function startAudio() {
+    const Tone = await import('tone');
+    setTone(Tone);
     await Tone.start();
     imRef.current = new InstrumentManager(tempo);
     const instNames = Object.keys(INSTRUMENT_SETS[instSet]);

@@ -7,7 +7,11 @@
  *   - InstrumentManager for channel/synth management
  */
 
-import * as Tone from 'tone';
+// Tone.js is injected at runtime (after a user gesture) to prevent the browser
+// from creating a suspended AudioContext before any interaction.
+// Call setTone(await import('tone')) inside your click handler before using audio.
+let tone = null;
+export function setTone(t) { tone = t; }
 
 // ── Utility ─────────────────────────────────────────────────────────────────
 
@@ -79,44 +83,44 @@ const DRUM_MAP = {
 function makeSynth(instName) {
   switch (instName) {
     case 'piano':
-      return new Tone.PolySynth(Tone.Synth, {
+      return new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'triangle' },
         envelope: { attack: 0.02, decay: 0.3, sustain: 0.4, release: 1.2 },
       }).toDestination();
 
     case 'vibraphone':
-      return new Tone.PolySynth(Tone.Synth, {
+      return new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'sine' },
         envelope: { attack: 0.01, decay: 0.8, sustain: 0.2, release: 2.0 },
       }).toDestination();
 
     case 'guitar':
-      return new Tone.PolySynth(Tone.Synth, {
+      return new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'sawtooth' },
         envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.5 },
       }).toDestination();
 
     case 'bass':
-      return new Tone.PolySynth(Tone.Synth, {
+      return new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'triangle' },
         envelope: { attack: 0.05, decay: 0.4, sustain: 0.5, release: 0.8 },
       }).toDestination();
 
     case 'synth':
-      return new Tone.PolySynth(Tone.Synth, {
+      return new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'square' },
         envelope: { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.3 },
       }).toDestination();
 
     case 'trumpet':
     case 'sax':
-      return new Tone.PolySynth(Tone.Synth, {
+      return new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'sawtooth' },
         envelope: { attack: 0.05, decay: 0.1, sustain: 0.8, release: 0.4 },
       }).toDestination();
 
     default:
-      return new Tone.PolySynth(Tone.Synth).toDestination();
+      return new tone.PolySynth(tone.Synth).toDestination();
   }
 }
 
@@ -130,15 +134,15 @@ export class InstrumentManager {
   constructor(tempo) {
     this._synths = {};
     this._drumSynths = {
-      kick:  new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4 }).toDestination(),
-      snare: new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination(),
-      hihat: new Tone.MetalSynth({ frequency: 800, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32 }).toDestination(),
-      tom:   new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 2 }).toDestination(),
-      crash: new Tone.MetalSynth({ frequency: 1200, envelope: { attack: 0.001, decay: 0.3, release: 0.2 }, harmonicity: 5.1, modulationIndex: 32 }).toDestination(),
-      ride:  new Tone.MetalSynth({ frequency: 1000, envelope: { attack: 0.001, decay: 0.1, release: 0.05 }, harmonicity: 5.1, modulationIndex: 24 }).toDestination(),
+      kick:  new tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4 }).toDestination(),
+      snare: new tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination(),
+      hihat: new tone.MetalSynth({ frequency: 800, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32 }).toDestination(),
+      tom:   new tone.MembraneSynth({ pitchDecay: 0.08, octaves: 2 }).toDestination(),
+      crash: new tone.MetalSynth({ frequency: 1200, envelope: { attack: 0.001, decay: 0.3, release: 0.2 }, harmonicity: 5.1, modulationIndex: 32 }).toDestination(),
+      ride:  new tone.MetalSynth({ frequency: 1000, envelope: { attack: 0.001, decay: 0.1, release: 0.05 }, harmonicity: 5.1, modulationIndex: 24 }).toDestination(),
     };
 
-    Tone.getTransport().bpm.value = tempo;
+    tone.getTransport().bpm.value = tempo;
   }
 
   getSynth(instName) {
@@ -156,14 +160,14 @@ export class InstrumentManager {
       const synth = this._drumSynths[drumInfo.type];
       if (!synth) return;
       if (drumInfo.type === 'snare') {
-        synth.triggerAttackRelease('16n', Tone.now());
+        synth.triggerAttackRelease('16n', tone.now());
       } else {
-        synth.triggerAttackRelease(drumInfo.freq, '8n', Tone.now());
+        synth.triggerAttackRelease(drumInfo.freq, '8n', tone.now());
       }
     } else {
       const note = midiToNote(midiNote);
       const synth = this.getSynth(instName);
-      synth.triggerAttack(note, Tone.now(), velocity);
+      synth.triggerAttack(note, tone.now(), velocity);
     }
   }
 
@@ -171,7 +175,7 @@ export class InstrumentManager {
     if (instName === 'drum') return; // drums are percussive
     const note = midiToNote(midiNote);
     const synth = this.getSynth(instName);
-    synth.triggerRelease(note, Tone.now());
+    synth.triggerRelease(note, tone.now());
   }
 
   dispose() {
