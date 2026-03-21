@@ -3,10 +3,17 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve the built Vite client in production
+const CLIENT_DIST = path.join(__dirname, '../client/dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(CLIENT_DIST));
+}
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -139,6 +146,13 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+// SPA catch-all: serve index.html for any non-API route in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {

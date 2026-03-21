@@ -13,7 +13,11 @@ import MainMenu from './scenes/MainMenu.jsx';
 import WaitingRoom from './scenes/WaitingRoom.jsx';
 import Practice from './scenes/Practice.jsx';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+// In production (Railway) the client is served from the same origin as the
+// server, so we use window.location.origin.  In local dev we fall back to
+// the Vite proxy / explicit env var.
+const SERVER_URL = import.meta.env.VITE_SERVER_URL ||
+  (import.meta.env.PROD ? window.location.origin : 'http://localhost:3001');
 
 export default function App() {
   const [scene, setScene] = useState('main_menu');
