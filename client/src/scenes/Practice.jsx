@@ -269,14 +269,7 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
           dispatch({ type: 'UPDATE_PATTERN', id: pattern_id, updates: { lockedIn: true, notes } });
           break;
         }
-        case 'on_pattern_queue': {
-          const { pattern_id } = action;
-          const pat = plRef.current.getPattern(pattern_id);
-          if (pat) pat.setQueued(true);
-          dispatch({ type: 'UPDATE_PATTERN', id: pattern_id, updates: { queued: true } });
-          break;
-        }
-        case 'on_pattern_remove': {
+case 'on_pattern_remove': {
           plRef.current.removePattern(action.pattern_id);
           dispatch({ type: 'REMOVE_PATTERN', id: action.pattern_id });
           break;
@@ -316,9 +309,9 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
   function queuePattern(id) {
     const pat = plRef.current.getPattern(id);
     if (!pat) return;
-    pat.setQueued(!pat.queued);
-    dispatch({ type: 'UPDATE_PATTERN', id, updates: { queued: !pat.queued } });
-    client?.sendAction('on_pattern_queue', { pattern_id: id, queued: !pat.queued });
+    const newQueued = !pat.queued;
+    pat.setQueued(newQueued);
+    dispatch({ type: 'UPDATE_PATTERN', id, updates: { queued: newQueued } });
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
