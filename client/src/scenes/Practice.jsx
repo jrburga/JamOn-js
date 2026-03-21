@@ -427,7 +427,9 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
             {players
               .filter((m) => m.id !== client?.id)
               .map((member) => {
-                const vp = state.vplayers.find((v) => v.id === member.id) || {};
+                const remoteNotes = state.patterns
+                  .filter((p) => p.creator?.id === member.id && p.lockedIn)
+                  .flatMap((p) => p.notes);
                 return (
                   <div key={member.id} className="track-wrapper">
                     <Track
@@ -435,8 +437,8 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
                       seconds={seconds}
                       active={false}
                       now={state.now}
-                      notes={vp.notes || []}
-                      activeNotes={vp.activeNotes || {}}
+                      notes={remoteNotes}
+                      activeNotes={{}}
                       isMe={false}
                     />
                     <span className="track-label">{member.username}</span>
