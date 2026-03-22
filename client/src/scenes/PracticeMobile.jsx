@@ -10,7 +10,7 @@
  *   - Audio gate: activateAudio() on first touchstart (mirrors keyboard gate on desktop)
  */
 
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 
 import Track from '../components/Track.jsx';
 import Dock, { DOCK_HEIGHT } from '../components/Dock.jsx';
@@ -42,10 +42,29 @@ export default function PracticeMobile({ client, bandMembers = [], instSet = 'RO
 
   // Map from touch.identifier → laneIdx currently held
   const activeTouches = useRef(new Map());
-  // Ref to the canvas wrapper div, used to compute lane from clientX
+  // Ref to the container div wrapping the Track; used for size measurement and lane math
   const trackWrapperRef = useRef(null);
   // Whether audio has been activated yet (T14)
   const audioGated = useRef(false);
+
+  // Measured pixel dimensions of the track container — passed explicitly to Track
+  // so it expands to fill the available space rather than using its default 200×560.
+  const [trackSize, setTrackSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const el = trackWrapperRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setTrackSize({ w: Math.round(width), h: Math.round(height) });
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   /** Compute lane index from a clientX position using the wrapper's bounding rect. */
   const clientXToLane = useCallback((clientX) => {
@@ -186,8 +205,8 @@ export default function PracticeMobile({ client, bandMembers = [], instSet = 'RO
             notes={currentPatternNotes}
             activeNotes={state.activeNotes}
             isMe={true}
-            width={undefined}   /* let ResizeObserver handle sizing */
-            height={undefined}
+            width={trackSize.w || undefined}
+            height={trackSize.h || undefined}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
