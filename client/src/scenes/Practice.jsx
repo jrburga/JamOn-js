@@ -98,7 +98,8 @@ function reducer(state, action) {
 
 export default function Practice({ client, bandMembers = [], instSet = 'ROCK' }) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const [audioStarted, setAudioStarted] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [audioActive, setAudioActive] = useState(false);
   const [players, setPlayers] = useState(bandMembers);
 
   // Refs — mutable game state that does NOT need to trigger renders
@@ -118,36 +119,40 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
   const seconds = spb * beats;
   secondsRef.current = seconds;
 
-  // ── Audio init ─────────────────────────────────────────────────────────────
+  // ── Session init ───────────────────────────────────────────────────────────
+  // Runs immediately on mount — no user gesture needed for setup.
+  // Tone.start() (the gesture-gated step) is deferred to first keypress.
 
-  async function startAudio() {
-    await Tone.start();
-    imRef.current = new InstrumentManager(tempo);
-    const instNames = Object.keys(INSTRUMENT_SETS[instSet]);
-    instRef.current = new Instrument(instNames[0], instSet);
-    instRef.current.manager = imRef.current;
+  useEffect(() => {
+    async function initSession() {
+      imRef.current = new InstrumentManager(tempo);
+      const instNames = Object.keys(INSTRUMENT_SETS[instSet]);
+      instRef.current = new Instrument(instNames[0], instSet);
+      instRef.current.manager = imRef.current;
 
-    plRef.current = new PatternList(BARS, tempo, instSet);
+      plRef.current = new PatternList(BARS, tempo, instSet);
 
-    // Sync to the shared session clock so all players loop in phase.
-    if (client) {
-      try {
-        const { session_start } = await client.syncClock();
-        startTimeRef.current = session_start;
-      } catch {
+      // Sync to the shared session clock so all players loop in phase.
+      if (client) {
+        try {
+          const { session_start } = await client.syncClock();
+          startTimeRef.current = session_start;
+        } catch {
+          startTimeRef.current = Date.now();
+        }
+      } else {
         startTimeRef.current = Date.now();
       }
-    } else {
-      startTimeRef.current = Date.now();
-    }
 
-    setAudioStarted(true);
-  }
+      setSessionReady(true);
+    }
+    initSession();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Game loop ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!audioStarted) return;
+    if (!sessionReady) return;
 
     function loop() {
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
@@ -179,12 +184,20 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [audioStarted]);
+  }, [sessionReady]);
 
   // ── Keyboard input ─────────────────────────────────────────────────────────
 
   const handleKeyDown = useCallback((e) => {
-    if (!audioStarted || e.repeat) return;
+    if (!sessionReady || e.repeat) return;
+
+    // Activate the Tone.js audio context on the first user gesture.
+    // The keypress that triggers activation is consumed so that noteOn
+    // isn't called before the context is running.
+    if (Tone.context.state !== 'running') {
+      Tone.start().then(() => setAudioActive(true));
+      return;
+    }
 
     if (e.key === LOCK_IN_KEY) {
       e.preventDefault();
@@ -223,10 +236,10 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
     if (editingId) {
       plRef.current.getPattern(editingId)?.onPress(laneIdx, now);
     }
-  }, [audioStarted, client]);
+  }, [sessionReady, client]);
 
   const handleKeyUp = useCallback((e) => {
-    if (!audioStarted) return;
+    if (!sessionReady) return;
     const laneIdx = DEFAULT_KEYS.indexOf(e.key.toLowerCase());
     if (laneIdx < 0 || laneIdx >= NUM_LANES) return;
     keysDown.current.delete(laneIdx);
@@ -240,7 +253,7 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
     if (editingId) {
       plRef.current.getPattern(editingId)?.onRelease(laneIdx, now);
     }
-  }, [audioStarted]);
+  }, [sessionReady]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -291,7 +304,11 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
   // ── Pattern actions ────────────────────────────────────────────────────────
 
   function createPattern(instName) {
-    if (!audioStarted) return;
+    if (!sessionReady) return;
+    // Button click is a user gesture — activate audio if not yet running.
+    if (Tone.context.state !== 'running') {
+      Tone.start().then(() => setAudioActive(true));
+    }
     const id = `${client?.id || 'local'}_${Date.now()}`;
     const isDrum = instName === 'drum';
     plRef.current.addPattern(id, instName, isDrum);
@@ -332,20 +349,13 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
 
   const instNames = Object.keys(INSTRUMENT_SETS[instSet]);
 
-  if (!audioStarted) {
-    return (
-      <div className="scene practice audio-gate">
-        <h2>Jam On!</h2>
-        <p>Click the button to start the audio engine and begin jamming.</p>
-        <button className="btn btn-host btn-large" onClick={startAudio}>
-          Start Session
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="scene practice">
+      {sessionReady && !audioActive && (
+        <div className="audio-hint">
+          Press any key or create a pattern to activate audio.
+        </div>
+      )}
       <div className="practice-layout">
         {/* ── Pattern list ── */}
         <aside className="pattern-panel">
