@@ -16,6 +16,7 @@ This folder contains design documents for planned features. Each doc covers user
 | Per-Pattern Effects | [per-pattern-effects.md](./per-pattern-effects.md) | Sound design |
 | Drum Kit Redesign | [drum-kit-redesign.md](./drum-kit-redesign.md) | Sound design |
 | Session Persistence & Export | [session-persistence-export.md](./session-persistence-export.md) | Sharing |
+| Mobile-Friendly Design | [mobile-design.md](./mobile-design.md) | Platform |
 
 ---
 
@@ -39,6 +40,7 @@ Per-Pattern Effects    ──┘
 - Scale Locking
 - Drum Kit Redesign
 - Session Persistence (basic save/load works without effects or overdub)
+- **Mobile Design** — CSS/layout layer only; touch input in Track.jsx is independent of all audio features
 
 ---
 
