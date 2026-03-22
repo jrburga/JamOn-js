@@ -16,32 +16,24 @@ Reference: [`mobile-design.md`](./mobile-design.md)
 
 ---
 
-## Architecture Decision
+## Prerequisite: Practice Refactor
 
-`Practice.jsx` is split into three files:
+The mobile layout (`PracticeMobile.jsx`) consumes a `usePractice` hook and a
+`PracticeDesktop.jsx` that don't exist yet. That extraction is tracked separately
+in [`refactor-practice.md`](./refactor-practice.md) — it's a standalone refactor
+worth doing regardless of mobile work.
+
+**Phases 4 and 5 below depend on that refactor being complete (T-R01–T-R03).**
+
+Once the refactor is done, the file structure is:
 
 ```
-usePractice.js          ← game engine hook (input-agnostic)
-                           owns: game loop, audio, network, pattern state
-                           exposes: noteOn(lane), noteOff(lane), lockIn(),
-                                    createPattern(inst), removePattern(id),
-                                    queuePattern(id), activateAudio()
-
-PracticeDesktop.jsx     ← desktop layout, consumes usePractice
-                           owns: keysDown ref, keydown/keyup handlers
-
-PracticeMobile.jsx      ← mobile layout, consumes usePractice
-                           owns: activeTouches ref, touch handlers,
-                                 panelOpen, instrumentPickerOpen,
-                                 spectatorTarget
-
-Practice.jsx            ← thin wrapper, picks layout based on breakpoint
+usePractice.js       ← game engine: noteOn/noteOff/lockIn/createPattern/…
+PracticeDesktop.jsx  ← desktop layout (keysDown ref, keyboard handlers)
+PracticeMobile.jsx   ← mobile layout (activeTouches ref, touch handlers,
+                        panelOpen, instrumentPickerOpen, spectatorTarget)
+Practice.jsx         ← thin wrapper, picks layout by breakpoint
 ```
-
-UI-only state (`panelOpen`, `instrumentPickerOpen`, `spectatorTarget`) stays in
-`PracticeMobile` because it has no effect on game logic and would be dead weight
-in the hook when the desktop layout is active. `keysDown` and `activeTouches` are
-input-layer refs — each layout owns the one relevant to it.
 
 ---
 
@@ -73,43 +65,29 @@ Self-contained. Can be built and tested in isolation before any wiring.
 
 ---
 
-## Phase 3 — Practice Refactor
-
-**Do this before any mobile wiring.** Splits `Practice.jsx` into `usePractice` +
-`PracticeDesktop` + thin wrapper. Desktop behavior must remain identical after
-this phase — it is a pure refactor.
-
-| ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
-|---|---|---|---|---|---|---|---|---|
-| T15a | Extract `usePractice({ client, bandMembers, instSet })` hook — move game loop, audio init, pattern state, network handlers, and `reducer` out of `Practice.jsx`; expose `{ state, sessionReady, audioActive, players, seconds, noteOn, noteOff, lockIn, createPattern, removePattern, queuePattern, activateAudio }` | Mobile | Practice Refactor | — | Both | **High** | No | Todo |
-| T15b | Create `PracticeDesktop.jsx` — consumes `usePractice`; moves `keysDown` ref and `handleKeyDown`/`handleKeyUp` here; JSX is the current `Practice` render verbatim; desktop smoke test must pass | Mobile | Practice Refactor | T15a | Both | Med | No | Todo |
-| T15c | Reduce `Practice.jsx` to a thin layout-picker wrapper — renders `<PracticeDesktop>` unconditionally for now; `<PracticeMobile>` is a stub that returns `<div>Mobile coming soon</div>`; all existing tests must still pass | Mobile | Practice Refactor | T15b, T01 | Both | Low | No | Todo |
-
----
-
-## Phase 4 — Touch Input
+## Phase 3 — Touch Input
 
 Adds touch event plumbing to `Track.jsx` and implements handlers in
-`PracticeMobile.jsx`. Depends on Phase 3 because handlers call `noteOn`/`noteOff`
-from `usePractice`.
+`PracticeMobile.jsx`. Depends on the Practice refactor (T-R01–T-R03) because
+handlers call `noteOn`/`noteOff` from `usePractice`.
 
 | ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
 |---|---|---|---|---|---|---|---|---|
 | T11 | Add `onTouchStart`, `onTouchMove`, `onTouchEnd` props to `Track.jsx`; register listeners with `{ passive: false }` and call `event.preventDefault()` to block scroll | Mobile | Track Canvas | T03 | Both | Med | No | Todo |
-| T12 | Add `activeTouches` ref (`Map<identifier, laneIdx>`) to `PracticeMobile.jsx`; implement `handleTouchStart`/`Move`/`End` that compute lane index from `touch.clientX` and call `noteOn`/`noteOff` from `usePractice` | Mobile | Practice Wiring | T11, T15c | Both | Med | No | Todo |
+| T12 | Add `activeTouches` ref (`Map<identifier, laneIdx>`) to `PracticeMobile.jsx`; implement `handleTouchStart`/`Move`/`End` that compute lane index from `touch.clientX` and call `noteOn`/`noteOff` from `usePractice` | Mobile | Practice Wiring | T11, T-R03 | Both | Med | No | Todo |
 | T13 | Handle multi-touch chords in `PracticeMobile` — each `Touch` in `changedTouches` tracked by `touch.identifier`; `touchmove` detects lane slide and calls `noteOff(oldLane)` / `noteOn(newLane)` | Mobile | Practice Wiring | T12 | Both | Med | No | Todo |
 | T14 | Mobile audio gate in `PracticeMobile` — call `activateAudio()` from `usePractice` on first `touchstart`; dock "+ New" tap also counts; mirrors existing keypress gate in `PracticeDesktop` | Mobile | Practice Wiring | T12 | Manual | Low | No | Todo |
 
 ---
 
-## Phase 5 — Mobile Layout Wiring
+## Phase 4 — Mobile Layout Wiring
 
-Builds out `PracticeMobile.jsx` from the stub into the full mobile UI.
-Work here is sequential — each step depends on the previous.
+Builds out `PracticeMobile.jsx` from the stub (created in T-R03) into the full
+mobile UI. Work here is sequential — each step depends on the previous.
 
 | ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
 |---|---|---|---|---|---|---|---|---|
-| T15d | Full-width canvas in `PracticeMobile` — wrap `Track` in a measured div; use `ResizeObserver` to pass live `width`/`height` as props; derive height from `(100vh - HEADER_H - DOCK_H)` | Mobile | Practice Wiring | T15c, T03 | Manual | Med | No | Todo |
+| T15d | Full-width canvas in `PracticeMobile` — wrap `Track` in a measured div; use `ResizeObserver` to pass live `width`/`height` as props; derive height from `(100vh - HEADER_H - DOCK_H)` | Mobile | Practice Wiring | T-R03, T03 | Manual | Med | No | Todo |
 | T15e | Mount `Dock` in `PracticeMobile` — derive `mode` from `editingPatternId` and `lockedIn` state; connect `onNew`, `onLockIn`, `onCancel`, `onToggleQueue`, `onOpenPanel` callbacks to `usePractice` actions | Mobile | Practice Wiring | T15d, T04 | Manual | Med | No | Todo |
 | T15f | Mount `TrackLaneOverlay` in `PracticeMobile` — wrap canvas + overlay in a shared `position: relative` div; pass lane count, note names, and ownership props | Mobile | Practice Wiring | T15d, T10 | Manual | Low | No | Todo |
 | T16 | Add `panelOpen` and `instrumentPickerOpen` state to `PracticeMobile`; wire open/close to `Dock`, `PanelDrawer`, and `InstrumentPickerSheet`; instrument selection calls `createPattern` from `usePractice` | Mobile | Practice Wiring | T15e, T05, T09 | Manual | Low | No | Todo |
@@ -118,7 +96,7 @@ Work here is sequential — each step depends on the previous.
 
 ---
 
-## Phase 6 — Spectator Mode
+## Phase 5 — Spectator Mode
 
 Lets a player view another player's track in the main canvas.
 
@@ -130,9 +108,9 @@ Lets a player view another player's track in the main canvas.
 
 ---
 
-## Phase 7 — Navigation Scenes
+## Phase 6 — Navigation Scenes
 
-Simpler responsive updates. No dependency on Phase 3–6.
+Simpler responsive updates. No dependency on Phases 3–5.
 
 | ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
 |---|---|---|---|---|---|---|---|---|
@@ -141,7 +119,7 @@ Simpler responsive updates. No dependency on Phase 3–6.
 
 ---
 
-## Phase 8 — Haptic Feedback
+## Phase 7 — Haptic Feedback
 
 Opt-in enhancement. Lowest priority; no blockers on other phases.
 
@@ -154,14 +132,16 @@ Opt-in enhancement. Lowest priority; no blockers on other phases.
 
 ## Summary
 
-| Phase | Tasks | New Files | Modified / Deleted Files |
+> The Practice refactor (T-R01–T-R03) is tracked in [`refactor-practice.md`](./refactor-practice.md)
+> and is a prerequisite for Phases 3 and 4.
+
+| Phase | Tasks | New Files | Modified Files |
 |---|---|---|---|
 | 1 — Foundation | T01–T03 | `hooks/useMediaQuery.js` | `index.css`, `Track.jsx` |
 | 2 — New Components | T04–T10 | `Dock.jsx`, `PanelDrawer.jsx`, `MiniTrack.jsx`, `InstrumentPickerSheet.jsx`, `TrackLaneOverlay.jsx` | — |
-| 3 — Practice Refactor | T15a–c | `usePractice.js`, `PracticeDesktop.jsx` | `Practice.jsx` (gutted to wrapper) |
-| 4 — Touch Input | T11–T14 | — | `Track.jsx`, `PracticeMobile.jsx` |
-| 5 — Mobile Layout | T15d–f, T16–T18 | — | `PracticeMobile.jsx` |
-| 6 — Spectator Mode | T19–T21 | — | `PracticeMobile.jsx`, `TrackLaneOverlay.jsx`, `Track.jsx` |
-| 7 — Navigation | T22–T23 | — | `MainMenu.jsx`, `WaitingRoom.jsx` |
-| 8 — Haptic | T24–T25 | — | `usePractice.js` |
-| **Total** | **27 tasks** | **7 new files** | **7 modified files** |
+| 3 — Touch Input | T11–T14 | — | `Track.jsx`, `PracticeMobile.jsx` |
+| 4 — Mobile Layout | T15d–f, T16–T18 | — | `PracticeMobile.jsx` |
+| 5 — Spectator Mode | T19–T21 | — | `PracticeMobile.jsx`, `TrackLaneOverlay.jsx`, `Track.jsx` |
+| 6 — Navigation | T22–T23 | — | `MainMenu.jsx`, `WaitingRoom.jsx` |
+| 7 — Haptic | T24–T25 | — | `usePractice.js` |
+| **Total** | **24 mobile tasks** | **6 new files** | **6 modified files** |
