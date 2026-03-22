@@ -46,6 +46,9 @@ function time2y(time, seconds, trackH) {
  * @param {boolean} props.isMe          - Whether this is the local player's track
  * @param {number}  [props.width]       - Canvas width override (defaults to TRACK_W)
  * @param {number}  [props.height]      - Canvas height override (defaults to TRACK_H)
+ * @param {Function} [props.onTouchStart] - Touch start handler (mobile)
+ * @param {Function} [props.onTouchMove]  - Touch move handler (mobile)
+ * @param {Function} [props.onTouchEnd]   - Touch end handler (mobile)
  */
 export default function Track({
   numLanes = 8,
@@ -57,6 +60,9 @@ export default function Track({
   isMe = true,
   width,
   height,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
 }) {
   const canvasRef = useRef(null);
   const wrapperRef = useRef(null);
@@ -76,6 +82,38 @@ export default function Track({
       });
     }
   }, [width, height]);
+
+  // Touch event listeners — registered with { passive: false } to allow preventDefault
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleTouchStart = onTouchStart
+      ? (e) => { e.preventDefault(); onTouchStart(e); }
+      : null;
+    const handleTouchMove = onTouchMove
+      ? (e) => { e.preventDefault(); onTouchMove(e); }
+      : null;
+    const handleTouchEnd = onTouchEnd
+      ? (e) => { e.preventDefault(); onTouchEnd(e); }
+      : null;
+
+    if (handleTouchStart) canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    if (handleTouchMove) canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    if (handleTouchEnd) {
+      canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+      canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    }
+
+    return () => {
+      if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+      if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+      if (handleTouchEnd) {
+        canvas.removeEventListener('touchend', handleTouchEnd);
+        canvas.removeEventListener('touchcancel', handleTouchEnd);
+      }
+    };
+  }, [onTouchStart, onTouchMove, onTouchEnd]);
 
   // ResizeObserver: keep canvas sized to its wrapper div
   useEffect(() => {

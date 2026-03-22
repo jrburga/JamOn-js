@@ -73,10 +73,10 @@ handlers call `noteOn`/`noteOff` from `usePractice`.
 
 | ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
 |---|---|---|---|---|---|---|---|---|
-| T11 | Add `onTouchStart`, `onTouchMove`, `onTouchEnd` props to `Track.jsx`; register listeners with `{ passive: false }` and call `event.preventDefault()` to block scroll | Mobile | Track Canvas | T03 | Both | Med | No | Todo |
-| T12 | Add `activeTouches` ref (`Map<identifier, laneIdx>`) to `PracticeMobile.jsx`; implement `handleTouchStart`/`Move`/`End` that compute lane index from `touch.clientX` and call `noteOn`/`noteOff` from `usePractice` | Mobile | Practice Wiring | T11, T-R03 | Both | Med | No | Todo |
-| T13 | Handle multi-touch chords in `PracticeMobile` — each `Touch` in `changedTouches` tracked by `touch.identifier`; `touchmove` detects lane slide and calls `noteOff(oldLane)` / `noteOn(newLane)` | Mobile | Practice Wiring | T12 | Both | Med | No | Todo |
-| T14 | Mobile audio gate in `PracticeMobile` — call `activateAudio()` from `usePractice` on first `touchstart`; dock "+ New" tap also counts; mirrors existing keypress gate in `PracticeDesktop` | Mobile | Practice Wiring | T12 | Manual | Low | No | Todo |
+| T11 | Add `onTouchStart`, `onTouchMove`, `onTouchEnd` props to `Track.jsx`; register listeners with `{ passive: false }` and call `event.preventDefault()` to block scroll | Mobile | Track Canvas | T03 | Both | Med | No | Done |
+| T12 | Add `activeTouches` ref (`Map<identifier, laneIdx>`) to `PracticeMobile.jsx`; implement `handleTouchStart`/`Move`/`End` that compute lane index from `touch.clientX` and call `noteOn`/`noteOff` from `usePractice` | Mobile | Practice Wiring | T11, T-R03 | Both | Med | No | Done |
+| T13 | Handle multi-touch chords in `PracticeMobile` — each `Touch` in `changedTouches` tracked by `touch.identifier`; `touchmove` detects lane slide and calls `noteOff(oldLane)` / `noteOn(newLane)` | Mobile | Practice Wiring | T12 | Both | Med | No | Done |
+| T14 | Mobile audio gate in `PracticeMobile` — call `activateAudio()` from `usePractice` on first `touchstart`; dock "+ New" tap also counts; mirrors existing keypress gate in `PracticeDesktop` | Mobile | Practice Wiring | T12 | Manual | Low | No | Done |
 
 ---
 
