@@ -9,9 +9,12 @@
  *
  * Notes (gems) are drawn as colored rectangles in their lane, positioned
  * at their recorded time.  While a key is held, the gem grows downward.
+ *
+ * On mobile, pass `width` and `height` props (or omit for desktop defaults).
+ * A ResizeObserver on the wrapper div keeps the canvas sized to its container.
  */
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 
 // ── Layout constants ─────────────────────────────────────────────────────────
 const TRACK_W = 200;
@@ -41,6 +44,8 @@ function time2y(time, seconds, trackH) {
  * @param {Array}   props.notes         - Committed notes [{lane, time, length}]
  * @param {object}  props.activeNotes   - Currently-held notes {lane: startTime}
  * @param {boolean} props.isMe          - Whether this is the local player's track
+ * @param {number}  [props.width]       - Canvas width override (defaults to TRACK_W)
+ * @param {number}  [props.height]      - Canvas height override (defaults to TRACK_H)
  */
 export default function Track({
   numLanes = 8,
@@ -50,8 +55,45 @@ export default function Track({
   notes = [],
   activeNotes = {},
   isMe = true,
+  width,
+  height,
 }) {
   const canvasRef = useRef(null);
+  const wrapperRef = useRef(null);
+
+  // Canvas dimensions: start from props (or constants), updated by ResizeObserver
+  const [canvasSize, setCanvasSize] = useState({
+    w: width ?? TRACK_W,
+    h: height ?? TRACK_H,
+  });
+
+  // Keep canvas size in sync when props change
+  useEffect(() => {
+    if (width !== undefined || height !== undefined) {
+      setCanvasSize({
+        w: width ?? TRACK_W,
+        h: height ?? TRACK_H,
+      });
+    }
+  }, [width, height]);
+
+  // ResizeObserver: keep canvas sized to its wrapper div
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: w, height: h } = entry.contentRect;
+        if (w > 0 && h > 0) {
+          setCanvasSize({ w: Math.round(w), h: Math.round(h) });
+        }
+      }
+    });
+
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -150,18 +192,29 @@ export default function Track({
 
   useEffect(() => {
     draw();
-  }, [draw]);
+  }, [draw, canvasSize]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={TRACK_W}
-      height={TRACK_H}
+    <div
+      ref={wrapperRef}
       style={{
-        display: 'block',
-        borderRadius: 4,
-        cursor: active ? 'crosshair' : 'default',
+        width: width !== undefined ? width : TRACK_W,
+        height: height !== undefined ? height : TRACK_H,
+        position: 'relative',
       }}
-    />
+    >
+      <canvas
+        ref={canvasRef}
+        width={canvasSize.w}
+        height={canvasSize.h}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          borderRadius: 4,
+          cursor: active ? 'crosshair' : 'default',
+        }}
+      />
+    </div>
   );
 }

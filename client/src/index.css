@@ -332,6 +332,35 @@ body {
   text-align: center;
 }
 
+/* ── Responsive Breakpoints ────────────────────────────────────────────────── */
+
+/* Tablet portrait / large mobile landscape: 768px–1023px
+   Switches to mobile layout: full-width stacked tracks, pattern panel hidden  */
+@media (max-width: 1023px) {
+  .practice-layout {
+    flex-direction: column;
+  }
+  .pattern-panel {
+    display: none; /* replaced by PanelDrawer on mobile */
+  }
+  .tracks {
+    flex-direction: column; /* stacked full-width tracks */
+  }
+}
+
+/* Phone portrait: < 768px — inherits tablet rules above */
+@media (max-width: 767px) {
+  .scene {
+    padding: 16px 12px;
+  }
+  .practice {
+    padding: 8px;
+  }
+  .practice-layout {
+    height: calc(100vh - 16px);
+  }
+}
+
 /* Loop progress bar */
 .loop-bar {
   height: 6px;
