@@ -43,9 +43,9 @@ No dependencies. Unblocks everything else.
 
 | ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
 |---|---|---|---|---|---|---|---|---|
-| T01 | Add `useMediaQuery` hook to `hooks/useMediaQuery.js` — returns `{ isMobile, isTablet, isLandscape }` based on window width and orientation | Mobile | Foundation | — | Auto | Low | No | Todo |
-| T02 | Add responsive CSS breakpoints to `index.css`: `≥1024px` desktop unchanged, `768–1023px` tablet-mobile, `<768px` phone | Mobile | Foundation | — | Manual | Low | No | Todo |
-| T03 | Make `Track.jsx` canvas dimensions dynamic — accept `width`/`height` props (fall back to current constants when absent), add `ResizeObserver` on wrapper div, recalculate `laneWidth` from canvas width | Mobile | Track Canvas | — | Both | Med | No | Todo |
+| T01 | Add `useMediaQuery` hook to `hooks/useMediaQuery.js` — returns `{ isMobile, isTablet, isLandscape }` based on window width and orientation | Mobile | Foundation | — | Auto | Low | No | Done |
+| T02 | Add responsive CSS breakpoints to `index.css`: `≥1024px` desktop unchanged, `768–1023px` tablet-mobile, `<768px` phone | Mobile | Foundation | — | Manual | Low | No | Done |
+| T03 | Make `Track.jsx` canvas dimensions dynamic — accept `width`/`height` props (fall back to current constants when absent), add `ResizeObserver` on wrapper div, recalculate `laneWidth` from canvas width | Mobile | Track Canvas | — | Both | Med | No | Done |
 
 ---
 
@@ -55,13 +55,13 @@ Self-contained. Can be built and tested in isolation before any wiring.
 
 | ID | Task | Feature | Sub-feature | Depends on | Testing | Complexity | Break down? | Status |
 |---|---|---|---|---|---|---|---|---|
-| T04 | Create `Dock.jsx` — fixed 72px bottom bar; accepts `mode` prop (`idle` / `recording` / `locked`) and action callbacks; three-slot layout per design doc | Mobile | Dock | T01 | Both | Med | No | Todo |
-| T05 | Create `PanelDrawer.jsx` shell — slide-up panel with drag handle, `translateY` CSS animation, snaps to 60% screen height, swipe-down or tap `↓` to close | Mobile | Panel | T01 | Manual | Med | No | Todo |
-| T06 | Add pattern list section to `PanelDrawer` — same queue/delete controls as existing `pattern-panel`; receives `patterns`, `onQueue`, `onDelete` props | Mobile | Panel | T05 | Manual | Low | No | Todo |
-| T07 | Create `MiniTrack.jsx` — read-only canvas thumbnail (~120×80px); same `notes`/`now`/`seconds` props as `Track.jsx`; renders note rectangles only, no labels | Mobile | Mini Track | T03 | Both | Med | No | Todo |
-| T08 | Add players section to `PanelDrawer` — renders a `MiniTrack` per remote player; tapping a thumbnail fires `onSpectate(playerId)` callback | Mobile | Panel | T05, T07 | Manual | Low | No | Todo |
-| T09 | Create `InstrumentPickerSheet.jsx` — bottom sheet instrument grid; same open/close animation as `PanelDrawer`; fires `onSelect(instName)` and `onCancel` | Mobile | Instrument Picker | T01 | Manual | Low | No | Todo |
-| T10 | Create `TrackLaneOverlay.jsx` — `pointer-events: none` div absolutely positioned over canvas wrapper; renders note-name labels (e.g. `C3`) centered per lane near the bottom; renders track ownership banner near the top | Mobile | Track Canvas | T03 | Manual | Med | No | Todo |
+| T04 | Create `Dock.jsx` — fixed 72px bottom bar; accepts `mode` prop (`idle` / `recording` / `locked`) and action callbacks; three-slot layout per design doc | Mobile | Dock | T01 | Both | Med | No | Done |
+| T05 | Create `PanelDrawer.jsx` shell — slide-up panel with drag handle, `translateY` CSS animation, snaps to 60% screen height, swipe-down or tap `↓` to close | Mobile | Panel | T01 | Manual | Med | No | Done |
+| T06 | Add pattern list section to `PanelDrawer` — same queue/delete controls as existing `pattern-panel`; receives `patterns`, `onQueue`, `onDelete` props | Mobile | Panel | T05 | Manual | Low | No | Done |
+| T07 | Create `MiniTrack.jsx` — read-only canvas thumbnail (~120×80px); same `notes`/`now`/`seconds` props as `Track.jsx`; renders note rectangles only, no labels | Mobile | Mini Track | T03 | Both | Med | No | Done |
+| T08 | Add players section to `PanelDrawer` — renders a `MiniTrack` per remote player; tapping a thumbnail fires `onSpectate(playerId)` callback | Mobile | Panel | T05, T07 | Manual | Low | No | Done |
+| T09 | Create `InstrumentPickerSheet.jsx` — bottom sheet instrument grid; same open/close animation as `PanelDrawer`; fires `onSelect(instName)` and `onCancel` | Mobile | Instrument Picker | T01 | Manual | Low | No | Done |
+| T10 | Create `TrackLaneOverlay.jsx` — `pointer-events: none` div absolutely positioned over canvas wrapper; renders note-name labels (e.g. `C3`) centered per lane near the bottom; renders track ownership banner near the top | Mobile | Track Canvas | T03 | Manual | Med | No | Done |
 
 ---
 
