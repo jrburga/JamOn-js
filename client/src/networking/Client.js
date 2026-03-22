@@ -55,7 +55,7 @@ export class Client {
               this.current_scene = res.current_scene || null;
               resolve(res);
             } else {
-              reject(new Error('Failed to join room'));
+              reject(new Error(res.error || 'join_failed'));
             }
           },
         );
@@ -132,22 +132,17 @@ export class Client {
     return this.get('band_members', null);
   }
 
-  addPattern(inst) {
-    return this.post('patterns', { inst });
-  }
-
-  getPattern(id) {
-    return this.get('patterns', id);
-  }
-
-  deletePattern(id) {
-    return this.delete('patterns', id);
-  }
-
   join() {
-    return this.addBandMember(this.info).then((memberId) => {
-      this.sendAction('on_join');
-      return memberId;
+    return this.addBandMember(this.info);
+  }
+
+  /** Request a shared session clock reference from the server. */
+  syncClock() {
+    return new Promise((resolve, reject) => {
+      this._socket.emit('sync_clock', (res) => {
+        if (res.success) resolve(res);
+        else reject(new Error('sync_clock failed'));
+      });
     });
   }
 }
