@@ -7,7 +7,10 @@ const path = require('path');
 
 const app = express();
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173';
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ||
+  (process.env.NODE_ENV === 'production'
+    ? 'http://localhost:5173'
+    : /^http:\/\/(localhost|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+):5173$/);
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(express.json());
 
