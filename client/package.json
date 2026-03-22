@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "JamOn collaborative music client",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

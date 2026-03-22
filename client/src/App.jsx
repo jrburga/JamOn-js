@@ -17,7 +17,7 @@ import Practice from './scenes/Practice.jsx';
 // server, so we use window.location.origin.  In local dev we fall back to
 // the Vite proxy / explicit env var.
 const SERVER_URL = import.meta.env.VITE_SERVER_URL ||
-  (import.meta.env.PROD ? window.location.origin : 'http://localhost:3001');
+  (import.meta.env.PROD ? window.location.origin : `http://${window.location.hostname}:3001`);
 
 export default function App() {
   const [scene, setScene] = useState('main_menu');

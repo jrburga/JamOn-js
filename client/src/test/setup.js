@@ -18,6 +18,13 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   set globalAlpha(_) {},
 }));
 
+// Mock ResizeObserver — jsdom does not implement it.
+global.ResizeObserver = vi.fn(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
 // Mock Tone.js — it requires a real Web Audio context which jsdom can't provide.
 // Each test can override specific methods via vi.mocked() if needed.
 vi.mock('tone', () => {

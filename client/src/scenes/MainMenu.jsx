@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:3001');
+  (import.meta.env.PROD ? '' : `http://${window.location.hostname}:3001`);
 
 export default function MainMenu({ onHost, onJoin }) {
   const [joining, setJoining] = useState(false);
