@@ -70,7 +70,7 @@ export default function App() {
         setScene('waiting_room');
       }
     } catch (e) {
-      setError('Failed to connect to server.');
+      setError(e.message === 'room_not_found' ? 'Room not found.' : 'Failed to connect to server.');
       console.error(e);
     }
   }, []);

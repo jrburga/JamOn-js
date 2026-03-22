@@ -128,7 +128,19 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
     instRef.current.manager = imRef.current;
 
     plRef.current = new PatternList(BARS, tempo, instSet);
-    startTimeRef.current = Date.now();
+
+    // Sync to the shared session clock so all players loop in phase.
+    if (client) {
+      try {
+        const { session_start } = await client.syncClock();
+        startTimeRef.current = session_start;
+      } catch {
+        startTimeRef.current = Date.now();
+      }
+    } else {
+      startTimeRef.current = Date.now();
+    }
+
     setAudioStarted(true);
   }
 
@@ -182,9 +194,16 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
       if (!pat) return;
       pat.lockIn();
       dispatch({ type: 'UPDATE_PATTERN', id: editingId, updates: { lockedIn: true, editing: false, notes: [...pat.notes] } });
-      client?.sendAction('on_pattern_done_editing', {
+      // Publish the complete snapshot so remote players can reconstruct it.
+      client?.sendAction('on_pattern_publish', {
         pattern_id: editingId,
+        inst: pat.inst,
+        isDrum: pat.isDrum,
+        bars: pat.bars,
+        tempo: pat.tempo,
+        instSet: pat.instSet,
         notes: pat.notes.map((n) => ({ lane: n.lane, time: n.time, length: n.length })),
+        creator: client.info,
       });
       return;
     }
@@ -252,26 +271,15 @@ export default function Practice({ client, bandMembers = [], instSet = 'ROCK' })
           });
           break;
         }
-        case 'on_pattern_create': {
-          const { pattern_id, inst, creator } = action;
-          if (creator.id === client.id) break;
-          const pat = plRef.current.addPattern(pattern_id, inst, inst === 'drum');
-          dispatch({ type: 'ADD_PATTERN', pattern: { id: pattern_id, inst, lockedIn: false, queued: false, notes: [], editing: true, creator } });
-          break;
-        }
-        case 'on_pattern_done_editing': {
-          const { pattern_id, notes } = action;
-          const pat = plRef.current.getPattern(pattern_id);
-          if (pat) {
-            notes.forEach((n) => { pat.notes.push({ ...n, isComplete: true }); });
-            pat.lockedIn = true;
-          }
-          dispatch({ type: 'UPDATE_PATTERN', id: pattern_id, updates: { lockedIn: true, notes } });
-          break;
-        }
-case 'on_pattern_remove': {
-          plRef.current.removePattern(action.pattern_id);
-          dispatch({ type: 'REMOVE_PATTERN', id: action.pattern_id });
+        case 'on_pattern_publish': {
+          // Skip our own publish (we already locked in locally).
+          if (action.sender_id === client.id) break;
+          const { pattern_id, inst, isDrum, notes, creator } = action;
+          const pat = plRef.current.addPattern(pattern_id, inst, isDrum);
+          notes.forEach((n) => { pat.notes.push({ ...n }); });
+          pat.lockedIn = true;
+          pat.editing = false;
+          dispatch({ type: 'ADD_PATTERN', pattern: { id: pattern_id, inst, lockedIn: true, queued: false, notes, editing: false, creator } });
           break;
         }
         default: break;
@@ -286,18 +294,13 @@ case 'on_pattern_remove': {
     if (!audioStarted) return;
     const id = `${client?.id || 'local'}_${Date.now()}`;
     const isDrum = instName === 'drum';
-    const pat = plRef.current.addPattern(id, instName, isDrum);
+    plRef.current.addPattern(id, instName, isDrum);
 
     // Switch instrument
     instRef.current.setInst(instName);
 
     dispatch({ type: 'ADD_PATTERN', pattern: { id, inst: instName, lockedIn: false, queued: false, notes: [], editing: true }, own: true });
-
-    client?.sendAction('on_pattern_create', {
-      pattern_id: id,
-      inst: instName,
-      creator: client.info,
-    });
+    // Recording is private until lock-in; the snapshot is published via on_pattern_publish.
   }
 
   function removePattern(id) {
@@ -305,7 +308,7 @@ case 'on_pattern_remove': {
     if (pat) imRef.current?.releaseAll(pat.inst);
     plRef.current.removePattern(id);
     dispatch({ type: 'REMOVE_PATTERN', id });
-    client?.sendAction('on_pattern_remove', { pattern_id: id });
+    // Deletion is local only — other players keep their own copies.
   }
 
   function queuePattern(id) {

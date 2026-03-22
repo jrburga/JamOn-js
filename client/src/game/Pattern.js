@@ -170,17 +170,6 @@ export class PatternList {
     this._nextId = 0;
   }
 
-  createPattern(inst, client) {
-    const id = client ? `${client.id}_${this._nextId++}` : String(this._nextId++);
-    client?.addPattern(inst);
-    client?.sendAction('on_pattern_create', {
-      pattern_id: id,
-      inst,
-      creator: client.info,
-    });
-    return id;
-  }
-
   addPattern(id, inst, isDrum = false) {
     const pattern = new Pattern(id, this.bars, this.tempo, inst, this.instSet, isDrum);
     this.patterns[id] = pattern;
