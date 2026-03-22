@@ -314,22 +314,34 @@ Slide-up panel with:
 Bottom sheet grid of instrument buttons. Animated same as PanelDrawer.
 
 ### `MiniTrack.jsx`
-Read-only thumbnail of a remote player's track (~120×80px). Simplified rendering: just note rectangles, no labels.
+Read-only thumbnail of a remote player's track (~120×80px). Simplified rendering: just note rectangles, no labels. Tapping a mini-track in the panel switches the main canvas to spectator mode for that player.
+
+### `TrackLaneOverlay.jsx`
+Absolutely-positioned `<div>` that sits over the track `<canvas>` with `pointer-events: none`. Renders note-name labels (e.g. `C3`) centered in each lane, pinned near the bottom. Also renders the track ownership banner (`"Your Track"` or `"👁 Watching [name]'s track"`) at the top of the overlay when on mobile.
 
 ---
 
 ## Implementation Notes
 
 ### CSS Breakpoints
-Single breakpoint added to `index.css`:
+Three breakpoints added to `index.css`:
 ```css
-/* Mobile: < 768px */
-@media (max-width: 767px) {
+/* Desktop: ≥ 1024px — full sidebar layout (unchanged) */
+
+/* Tablet portrait / large mobile landscape: 768px–1023px — mobile layout with landscape sidebar */
+@media (max-width: 1023px) {
   .practice-layout { flex-direction: column; }
   .pattern-panel { display: none; }   /* replaced by PanelDrawer */
   .tracks { flex-direction: column; } /* stacked full-width tracks */
 }
+
+/* Phone portrait: < 768px — same mobile layout as above */
+@media (max-width: 767px) {
+  /* inherits tablet rules above */
+}
 ```
+
+The landscape sidebar variant (160px wide, controls stacked vertically) applies when the device is in landscape orientation AND width is between 768px and 1023px.
 
 ### Track Canvas Resize
 `Track.jsx` currently uses hardcoded `TRACK_W = 200`, `TRACK_H = 560`. On mobile:
@@ -347,6 +359,25 @@ Single breakpoint added to `index.css`:
 ### Landscape Detection
 A `useEffect` listens to `window.addEventListener('orientationchange')` or `resize` to switch between portrait (dock) and landscape (sidebar) layouts.
 
+Breakpoint logic summary:
+- `width ≥ 1024px` → desktop layout (sidebar, unchanged)
+- `768px ≤ width < 1024px` → mobile layout; landscape orientation triggers the sidebar variant
+- `width < 768px` → mobile layout; landscape orientation triggers the sidebar variant
+
+### Haptic Feedback
+Haptic feedback via `navigator.vibrate()` is **off by default**. It is a user-facing setting with three values: `off` (default), `medium`, `strong`. Pulse durations: medium = 10ms, strong = 25ms. The setting is stored in user preferences (localStorage). The settings sheet (Tier 4) exposes the toggle. Implementation checks `navigator.vibrate` support before calling; no error thrown on unsupported devices.
+
+### Lane Labels on Mobile
+Each lane displays its note name (e.g. `C3`) centered horizontally within the lane, pinned near the bottom of the canvas, rendered above all note/track elements. Because the label must float above animated track content, it is rendered in a separate absolutely-positioned overlay `<div>` that sits on top of the `<canvas>` — both sharing the same wrapper. The overlay has `pointer-events: none` so it never intercepts touch input. Labels are always visible on mobile (not a toggle for now); this may be revisited if users find them distracting.
+
+### Track Ownership Header & Spectator Mode
+A full-width title bar appears immediately above the track canvas. Its content depends on whose track is shown:
+
+- **Own track** — `"Your Track"` (or the instrument name if a pattern is active)
+- **Spectating another player** — `"👁 Watching [PlayerName]'s track"` in a visually distinct style (muted/greyed)
+
+When viewing another player's track in the main canvas area (accessible via the dock), the entire track is rendered at reduced opacity with a greyscale filter and all touch input is disabled (`pointer-events: none` on the canvas). A persistent non-interactive banner makes clear the player is in spectator mode. Horizontal and vertical scrolling within the track view is always disabled; the player cannot accidentally scroll while performing.
+
 ---
 
 ## Files to Create / Modify
@@ -357,6 +388,7 @@ A `useEffect` listens to `window.addEventListener('orientationchange')` or `resi
 | `client/src/components/PanelDrawer.jsx` | New — slide-up panel |
 | `client/src/components/InstrumentPickerSheet.jsx` | New — bottom sheet instrument grid |
 | `client/src/components/MiniTrack.jsx` | New — read-only thumbnail track |
+| `client/src/components/TrackLaneOverlay.jsx` | New — pointer-events:none overlay for lane labels and track ownership banner |
 | `client/src/components/Track.jsx` | Add touch events, dynamic canvas sizing via props |
 | `client/src/scenes/Practice.jsx` | Mobile layout branch, touch handlers, dock/panel state |
 | `client/src/scenes/WaitingRoom.jsx` | Stacked layout on mobile |
@@ -366,10 +398,14 @@ A `useEffect` listens to `window.addEventListener('orientationchange')` or `resi
 
 ---
 
-## Open Questions
+## Design Decisions (resolved)
 
-- **Landscape on tablet (iPad)**: Should the tablet get the desktop layout (sidebar) or the mobile layout (dock + panel)? Recommendation: use the desktop layout above 1024px width; mobile layout between 1024px and 768px gets the landscape sidebar variant.
-- **Haptic feedback**: Should tapping a lane trigger vibration (`navigator.vibrate(10)`)? Adds tactile feel for note-on. Opt-in or on by default?
-- **Note sustain on mobile**: If the player lifts their finger to navigate the dock mid-recording, should held notes be released? Yes — `touchcancel` and `touchend` always release. Players need to finish their phrase before tapping the dock.
-- **Visual lane labels on mobile**: Should the 8 lane columns show note name labels (e.g. `C3`) on the canvas, especially when scale locking is active? Useful for learning; could be toggled in settings.
-- **Scrolling between players' tracks**: In the panel, if there are 4+ players, should the mini-track section scroll horizontally or vertically? Horizontal scrolling feels more natural for a multi-player band display.
+- **Landscape on tablet (iPad)**: Desktop layout (sidebar) at ≥ 1024px width. Mobile layout between 768px and 1023px; landscape orientation within that range gets the landscape sidebar variant (160px sidebar, controls stacked vertically).
+
+- **Haptic feedback**: Not a priority — players already receive audio feedback. Available as an opt-in setting with three levels: `off` (default), `medium` (10ms pulse), `strong` (25ms pulse). Exposed in the settings sheet (Tier 4). See *Haptic Feedback* in Implementation Notes.
+
+- **Note sustain on mobile**: Lifting a finger always releases the held note. `touchend` and `touchcancel` both call `noteOff` for each released touch identifier. Players must finish a phrase before tapping the dock.
+
+- **Visual lane labels on mobile**: Each lane shows its note name (e.g. `C3`) centered in the lane, pinned near the bottom, rendered in a `pointer-events: none` overlay `<div>` above the `<canvas>` so labels never block touch input. Always visible on mobile. See *Lane Labels on Mobile* in Implementation Notes.
+
+- **Scrolling between players' tracks / spectator mode**: Players cannot scroll the track view horizontally or vertically — `touchmove` calls `preventDefault()` across the entire track area. Viewing other players' tracks is accessed via the dock (not horizontal swiping between tracks). When another player's track is shown, the canvas is greyscaled and non-interactive, with a persistent `"👁 Watching [PlayerName]'s track"` banner. The player's own track always shows `"Your Track"` (or the active instrument name). See *Track Ownership Header & Spectator Mode* in Implementation Notes.
