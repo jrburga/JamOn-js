@@ -16,14 +16,14 @@ Reference: [`mobile-design.md`](./mobile-design.md)
 
 ---
 
-## Prerequisite: Practice Refactor
+## Prerequisite: Practice Refactor — DONE
 
 The mobile layout (`PracticeMobile.jsx`) consumes a `usePractice` hook and a
-`PracticeDesktop.jsx` that don't exist yet. That extraction is tracked separately
-in [`refactor-practice.md`](./refactor-practice.md) — it's a standalone refactor
-worth doing regardless of mobile work.
+`PracticeDesktop.jsx`. The extraction is complete: `usePractice.js`,
+`PracticeDesktop.jsx`, and the thin `Practice.jsx` wrapper all exist and all
+128 tests pass.
 
-**Phases 4 and 5 below depend on that refactor being complete (T-R01–T-R03).**
+**Phases 4 and 5 below are unblocked (T-R01–T-R03 complete).**
 
 Once the refactor is done, the file structure is:
 
@@ -132,8 +132,7 @@ Opt-in enhancement. Lowest priority; no blockers on other phases.
 
 ## Summary
 
-> The Practice refactor (T-R01–T-R03) is tracked in [`refactor-practice.md`](./refactor-practice.md)
-> and is a prerequisite for Phases 3 and 4.
+> The Practice refactor (T-R01–T-R03) is complete and is a prerequisite for Phases 3 and 4.
 
 | Phase | Tasks | New Files | Modified Files |
 |---|---|---|---|
