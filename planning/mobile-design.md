@@ -1,7 +1,7 @@
 # Feature: Mobile-Friendly Design
 
 ## Overview
-Redesign the app's layout and interaction model to work on phones and tablets. The track canvas dominates the screen and responds to touch input (tap to play, hold to sustain, multi-touch for chords). A fixed dock bar surfaces the most critical controls; a slide-up panel provides access to everything else. Desktop layout is preserved through a responsive breakpoint.
+Redesign the app's layout and interaction model to work on phones and tablets. The track canvas dominates the screen and responds to touch input (tap to play, hold to sustain, multi-touch for chords). A fixed dock bar surfaces the most critical controls; a slide-up panel provides access to everything else. The main track view can switch between **Edit mode** (your own track, interactive) and **Spectator mode** (another player's track, read-only, greyscaled). Desktop layout is preserved through responsive breakpoints.
 
 ---
 
@@ -11,187 +11,205 @@ Redesign the app's layout and interaction model to work on phones and tablets. T
 - **As a mobile player**, I want to touch multiple lanes at the same time to play chords so that I have the same expressiveness as a keyboard player.
 - **As a mobile player**, I want the track to fill most of my screen so that I have large, accurate touch targets for each lane.
 - **As a mobile player**, I want a lock-in button always within thumb's reach so that I can commit a recording without hunting for a control.
-- **As a mobile player**, I want secondary controls (pattern list, other players' tracks) accessible from a panel so that they don't clutter my playing space.
+- **As a mobile player**, I want secondary controls (pattern list, other players) accessible from a panel so that they don't clutter my playing space.
 - **As a mobile player**, I want to create a new pattern from a single tap so that I can start recording without navigating menus.
+- **As a mobile player**, I want to watch another player's track in the main view so that I can see what they're recording without leaving the practice scene.
+- **As a mobile player watching another player**, I want it to be visually obvious I'm in spectator mode and can't play so that I don't accidentally think my taps are being recorded.
 - **As a host on mobile**, I want to configure the instrument set and start the session from a clear, stacked layout so that I can manage the room from my phone.
+
+---
+
+## Breakpoints
+
+Three layout tiers driven by a single CSS custom property and two media query breakpoints:
+
+| Width | Layout | Description |
+|---|---|---|
+| `≥ 1024px` | Desktop | Sidebar + main track area (current layout, unchanged) |
+| `768px – 1023px` | Tablet / Landscape phone | Landscape sidebar variant (160px right panel, shorter track) |
+| `< 768px` | Mobile portrait | Full-width track, dock bar, slide-up panel |
+
+```css
+/* Tablet landscape */
+@media (max-width: 1023px) {
+  /* landscape sidebar variant */
+}
+
+/* Mobile portrait */
+@media (max-width: 767px) {
+  /* dock + panel layout */
+}
+```
 
 ---
 
 ## Control Access Hierarchy
 
-Controls are ranked by how often they're needed during a jam. Higher tiers are always visible; lower tiers live behind one tap.
-
 | Tier | Controls | Location |
 |---|---|---|
-| **1 — Always on screen** | Lock In (SPACE), Lane touch targets | Track canvas + dock |
-| **2 — One tap** | New pattern (instrument picker), Queue/dequeue current pattern, Delete current pattern | Dock bar |
-| **3 — Panel open** | Full pattern list, Other players' mini-tracks, Room code | Slide-up panel |
-| **4 — Settings sheet** | Leave room, Audio hint | Settings icon in header |
+| **1 — Always on screen** | Lane touch targets, Lock In button (while recording) | Track canvas + dock |
+| **2 — One tap (dock)** | New pattern, Queue/dequeue, Cancel recording, Back to your track (spectator) | Dock bar |
+| **3 — Panel open** | Full pattern list, Player list (tap to spectate), Room code | Slide-up panel |
+| **4 — Settings sheet** | Haptic feedback toggle, Leave room | Settings icon in header |
 
 ---
 
 ## Layout Diagrams
 
-### Practice Scene — Portrait Phone (default, idle)
+### Practice Scene — Portrait Phone (idle, edit mode)
 
 ```
-┌────────────────────────┐  ← 375px wide (iPhone SE/14)
-│ [≡]  JamOn   AB12CD  │  ← Header: 44px, room code right-aligned
+┌────────────────────────┐  ← 375px wide (iPhone SE / 14)
+│ [≡]  JamOn   AB12CD  │  ← Header 44px · room code right-aligned
 ├────────────────────────┤
-│                        │
-│   YOUR TRACK           │  ← Full-width canvas
-│   (8 lanes, full width)│     height = 100vh - 44px header
-│                        │               - 72px dock
-│   ┆ ┆ ┆ ┆ ┆ ┆ ┆ ┆    │     ≈ 560px on a 676px-tall phone
-│   ┆ ┆ ┆ ┆ ┆ ┆ ┆ ┆    │
-│   ┆ ┆ ┆ ┆ ┆ ┆ ┆ ┆    │
-│   ─────────────────    │  ← Now bar (horizontal)
-│   (past notes below)   │
-│                        │
+│  ┊  ┊  ┊  ┊  ┊  ┊  ┊  ┊ │  ← Lane labels (note names, near bottom
+│  ┊  ┊  ┊  ┊  ┊  ┊  ┊  ┊ │     of each column, drawn on top of gems)
+│  ┊  ┊  ┊  ┊  ┊  ┊  ┊  ┊ │
+│  ┊  ┊  ┊  ┊  ┊  ┊  ┊  ┊ │  ← Full-width track canvas
+│  ─────────────────────  │  ← Now bar
+│                         │
+│  C3  D3  E3  F3  …  B3 │  ← Labels pinned to bottom of canvas,
+│                         │     visible above all other elements
 ├────────────────────────┤
-│  [+ New]  [    ]  [≡] │  ← Dock: 72px
+│  [+ New]  [    ]  [≡] │  ← Dock 72px
 └────────────────────────┘
-       ↑          ↑
-   Instrument   Panel
-    Picker       Open
 ```
 
-**Dock slots (left to right):**
+**Canvas height** = `100vh − 44px (header) − 72px (dock)` ≈ 560px on most phones.
+
+**Dock — idle:**
 - `[+ New]` — opens instrument picker sheet
-- `[    ]` — context-sensitive center button (empty when idle)
+- `[    ]` — empty (no active pattern)
 - `[≡]` — opens slide-up panel
 
 ---
 
-### Practice Scene — Portrait Phone (while recording)
+### Practice Scene — Portrait Phone (recording)
 
 ```
 ┌────────────────────────┐
 │ [≡]  JamOn   AB12CD  │
 ├────────────────────────┤
 │                        │
-│   YOUR TRACK           │
-│   (recording active)   │
-│   ┆ ┆ ┆ ┆ ┆ ┆ ┆ ┆    │
-│   ●───────────── ●─    │  ← live notes appearing as you hold
-│   ─────────────────    │  ← now bar (green/active)
+│   ● ──────  ●──        │  ← Live notes growing downward as held
+│   ┊  ┊  ┊  ┊  ┊  ┊  ┊ │
+│   ──────────────────── │  ← Now bar (green · active)
 │                        │
+│  C3  D3  E3  F3  …  B3│  ← Lane labels
 ├────────────────────────┤
-│  [✕ Cancel] [🔴 Lock] [≡]│  ← Dock changes while recording
+│  [✕ Cancel] [🔴 Lock] [≡]│  ← Dock changes during recording
 └────────────────────────┘
-              ↑
-        Lock In (was SPACE)
 ```
 
-**Dock while recording:**
-- `[✕ Cancel]` — discard this pattern, return to idle
-- `[🔴 Lock In]` — lock the pattern (prominent, red accent)
-- `[≡]` — panel (same)
+**Dock — recording:**
+- `[✕ Cancel]` — discard pattern, return to idle
+- `[🔴 Lock In]` — commit the recording (equivalent to SPACE)
+- `[≡]` — panel (unchanged)
 
 ---
 
-### Practice Scene — Portrait Phone (pattern locked, queued)
+### Practice Scene — Portrait Phone (locked, queued)
 
 ```
 ┌────────────────────────┐
 │ [≡]  JamOn   AB12CD  │
 ├────────────────────────┤
 │                        │
-│   YOUR TRACK           │
-│   (piano • playing ▶)  │
-│   ┆█┆ ┆ ┆█┆ ┆ ┆ ┆    │  ← locked-in notes shown
-│   ─────────────────    │
+│   ┊█┊  ┊  ┊█┊  ┊  ┊   │  ← Locked notes looping
+│   ──────────────────── │  ← Now bar
 │                        │
+│  C3  D3  E3  F3  …  B3│
 ├────────────────────────┤
-│  [+ New] [▶ Playing] [≡]│  ← Center btn = queue toggle
+│  [+ New] [▶ Playing] [≡]│  ← Centre = queue toggle for latest pattern
 └────────────────────────┘
 ```
 
-**Dock after lock-in:**
+**Dock — locked:**
 - `[+ New]` — start another pattern
-- `[▶ Playing]` / `[⏸ Queue]` — toggle playback of the most recently locked pattern
+- `[▶ Playing]` / `[⏸ Queue]` — toggle playback of most-recently-locked pattern
 - `[≡]` — panel
 
 ---
 
 ### Practice Scene — Slide-Up Panel (open)
 
-The panel slides up from the bottom, overlapping the lower portion of the track. A drag handle at the top lets it be dismissed by swiping down.
+The panel slides up from the bottom. The track is still visible above it (cropped). No scrolling — players tap a section to expand it.
 
 ```
 ┌────────────────────────┐
 │ [≡]  JamOn   AB12CD  │
 ├────────────────────────┤
-│   YOUR TRACK (cropped) │  ← Track still visible at top (~200px)
+│   Track (cropped top)  │  ← ~180px of track remains visible
 │                        │
-├──────────────┬─────────┤  ← Panel snap point (60% of screen height)
-│       ━━━━━  │         │  ← Drag handle (swipe down to close)
-├──────────────┴─────────┤
-│ Patterns               │  ← Section header
-│ ┌──────────────────┐   │
-│ │ 🎹 piano  v1  ▶ ✕│   │  ← Pattern items (tap to select/dequeue)
-│ │ 🥁 drum   v1  ▶ ✕│   │
-│ └──────────────────┘   │
+├────────────┬───────────┤  ← Panel slides up to 60% of screen height
+│       ━━━  │           │  ← Drag handle — swipe down to close
+├────────────┴───────────┤
+│ ▾ Patterns             │  ← Collapsible section
+│  🎹 piano  v1   [▶][✕] │
+│  🥁 drum   v1   [▶][✕] │
 │                        │
-│ Players                │  ← Section header
-│ ┌─────────┐ ┌────────┐ │
-│ │Bob      │ │Carol   │ │  ← Mini track thumbnails (read-only)
-│ │[mini trk│ │[mini   │ │     ~120×80px each
-│ └─────────┘ └────────┘ │
+│ ▾ Players              │  ← Collapsible section
+│  ○ Bob      [👁 Watch]  │  ← Tap Watch → spectator mode (main view)
+│  ○ Carol    [👁 Watch]  │
+│                        │
 ├────────────────────────┤
-│  [+ New] [▶ Playing] [≡ ↓]│  ← Dock still visible, ≡ rotates to ↓
+│  [+ New] [▶ Playing] [≡↓]│  ← Dock always visible; ≡ becomes ↓
 └────────────────────────┘
 ```
 
+**Players section** shows a list, not mini-tracks. Tapping `[👁 Watch]` next to a player's name switches the main track view to spectator mode for that player. No scrolling in the panel — if the list grows long, sections are individually scrollable within their container.
+
 ---
 
-### Practice Scene — Instrument Picker Sheet (on "+ New" tap)
+### Practice Scene — Spectator Mode (watching another player)
 
-A bottom sheet slides up with instrument options:
+When the player taps `[👁 Watch]` for Bob, the main track switches to Bob's track. The track is greyscaled, touch input is disabled, and the header changes to show who is being watched.
 
 ```
 ┌────────────────────────┐
-│   (track, dimmed)      │
+│ [≡]  👁 Bob's track  │  ← Header: player name replaces room code
+├────────────────────────┤
+│                        │
+│   (greyscale track)    │  ← Bob's notes, greyscaled
+│   ┊░┊  ┊  ┊░┊  ┊  ┊   │     Touch input disabled
+│   ──────────────────── │  ← Now bar (grey, not green)
+│                        │
+│  [— touch disabled —]  │  ← Subtle overlay label in the track
 │                        │
 ├────────────────────────┤
-│         ━━━━━          │  ← drag handle
-│  Choose Instrument     │
-│                        │
-│  ┌──────┐  ┌──────┐   │
-│  │  🎹  │  │  🎸  │   │
-│  │ piano│  │guitar│   │
-│  └──────┘  └──────┘   │
-│  ┌──────┐  ┌──────┐   │
-│  │  🎵  │  │  🥁  │   │
-│  │ bass │  │ drum │   │
-│  └──────┘  └──────┘   │
-│                        │
-│       [ Cancel ]       │
+│  [◀ Your Track]  [  ] [≡]│  ← Dock: left button = return to edit mode
 └────────────────────────┘
 ```
 
+**Visual cues for spectator mode:**
+- Canvas rendered with `filter: grayscale(100%)` via a CSS wrapper, or by desaturating colours in the canvas draw calls
+- A translucent overlay text "Watching · touch disabled" centred in the lower half of the track
+- The now bar turns grey instead of green
+- The header swaps room code for `👁 [name]'s track`
+- Dock left button becomes `[◀ Your Track]` — one tap returns to edit mode
+
 ---
 
-### Phone Landscape — Practice Scene
-
-In landscape, more horizontal space is available. The track stays full-width but shorter; a narrow sidebar replaces the dock.
+### Practice Scene — Tablet / Landscape Phone (768px–1023px)
 
 ```
-┌──────────────────────────────────────┐  ~667×375px
-│ [≡] JamOn  AB12CD              [⚙] │  ← Header (40px)
+┌──────────────────────────────────────┐
+│ [≡] JamOn  AB12CD              [⚙] │  ← Header 40px
 ├─────────────────────────┬────────────┤
-│                         │ Patterns   │
-│   YOUR TRACK            │ ┌────────┐ │
-│   (full width, shorter) │ │piano ▶✕│ │
-│   ┆ ┆ ┆ ┆ ┆ ┆ ┆ ┆      │ │drum  ▶✕│ │
+│                         │ Patterns   │  ← 160px sidebar
+│   TRACK (full width,    │ ┌────────┐ │
+│   shorter height)       │ │piano ▶✕│ │
+│   ┊ ┊ ┊ ┊ ┊ ┊ ┊ ┊      │ │drum  ▶✕│ │
 │   ─────────────────     │ └────────┘ │
 │                         │            │
-│                         │[+ New]     │
-│                         │[🔴 Lock In]│
+│  C3 D3 E3 F3 F#3 …      │ [+ New]    │
+│                         │ [🔴 Lock]  │
+│                         │            │
+│                         │ Players:   │
+│                         │ Bob  [👁]  │
+│                         │ Carol [👁] │
 └─────────────────────────┴────────────┘
 ```
-
-Landscape sidebar is 160px wide — same controls as the dock but stacked vertically.
 
 ---
 
@@ -199,22 +217,22 @@ Landscape sidebar is 160px wide — same controls as the dock but stacked vertic
 
 ```
 ┌────────────────────────┐
-│ [←]  Waiting Room      │  ← Header (back = leave room)
+│ [←]  Waiting Room      │  ← Back button = leave room
 ├────────────────────────┤
-│ Room: AB12CD  📋       │  ← Room code + copy button
+│ Room: AB12CD  [📋 Copy]│  ← Tap to copy room code to clipboard
 ├────────────────────────┤
 │ The Band               │
-│ ┌──────────────────┐   │
-│ │ Rudolph  [You] [Host]│
-│ │ Dasher         │
-│ └──────────────────┘   │
+│  Rudolph   [You][Host] │
+│  Dasher                │
 ├────────────────────────┤
-│ Instruments  (host only)│
-│ ● ROCK   ○ ELECTRO  ○ JAZZ│  ← Segmented control or radio
+│ Instruments (host only)│
+│  ● ROCK                │  ← Stacked radio options (not side-by-side)
+│  ○ ELECTRO             │
+│  ○ JAZZ                │
 ├────────────────────────┤
-│    [ Let's Jam! ]      │  ← Full-width CTA (host only)
+│   [ Let's Jam! ]       │  ← Full-width CTA, sticky to bottom
 └────────────────────────┘
-       (non-host sees "Waiting for host…" instead of CTA)
+         (non-host: "Waiting for host to start…" replaces CTA)
 ```
 
 ---
@@ -224,22 +242,23 @@ Landscape sidebar is 160px wide — same controls as the dock but stacked vertic
 ```
 ┌────────────────────────┐
 │                        │
-│      JamOn!            │  ← Title (smaller clamp, ~56px)
-│   Play music together  │
+│       JamOn!           │  ← clamp(40px, 12vw, 72px)
+│  Play music together   │
 │                        │
 │  ┌──────────────────┐  │
-│  │      HOST        │  │  ← Full-width button, stacked
+│  │      HOST        │  │  ← Full-width, stacked vertically
 │  │  Start a session │  │
 │  └──────────────────┘  │
 │  ┌──────────────────┐  │
-│  │      JOIN        │  │  ← Full-width button
+│  │      JOIN        │  │
 │  │  Enter room code │  │
 │  └──────────────────┘  │
 │                        │
-│  ┌──────────────────┐  │  ← Join form (revealed on JOIN tap)
-│  │  A B 1 2 C D     │  │
-│  │  [Join] [Cancel] │  │
+│   ── Join form ──      │  ← Slides in below JOIN button on tap
+│  ┌──────────────────┐  │
+│  │   A B 1 2 C D    │  │  ← Full-width input, large font
 │  └──────────────────┘  │
+│  [ Join ]  [ Cancel ]  │
 └────────────────────────┘
 ```
 
@@ -247,105 +266,213 @@ Landscape sidebar is 160px wide — same controls as the dock but stacked vertic
 
 ## Touch Interaction Model
 
-### Lane Touch Input (Track Canvas)
-Touch events replace keyboard events on mobile. The track canvas receives:
+### Lane Touch Input
+Touch events replace keyboard events on mobile. The track canvas handles:
 
-- **`touchstart`** → identify lane(s) from `touch.clientX` position → `noteOn(lane, time)`
-- **`touchmove`** → detect if finger slid to a different lane → `noteOff(oldLane)`, `noteOn(newLane)`
-- **`touchend`** / **`touchcancel`** → `noteOff(lane, time)` for each released touch
+- **`touchstart`** → map `touch.clientX` to lane index → `noteOn(lane, time)`
+- **`touchmove`** → if finger crosses a lane boundary → `noteOff(prevLane)`, `noteOn(newLane, time)`
+- **`touchend`** / **`touchcancel`** → `noteOff(lane, time)` for that touch identifier
 
-Lane index from touch: `laneIdx = Math.floor((touch.clientX - trackRect.left) / laneWidth)`
+```js
+laneIdx = Math.floor((touch.clientX - canvasRect.left) / (canvasWidth / numLanes))
+```
 
-Multi-touch: each `Touch` object in `event.changedTouches` is tracked independently by `touch.identifier`. This allows chords (multiple lanes held simultaneously).
+Multi-touch is tracked by `touch.identifier`. Each active touch is stored in `activeTouches: Map<id, laneIdx>`. Releasing one finger doesn't affect other held notes.
 
-### Preventing Scroll Conflicts
-The track canvas calls `event.preventDefault()` on touch events to prevent the page from scrolling while playing. This requires the touch listener to be registered with `{ passive: false }`.
+### Note Sustain
+Lifting a finger always releases the note — `touchend` and `touchcancel` both fire `noteOff`. If the player taps the dock mid-phrase, the canvas `touchcancel` fires for any held touches, releasing them cleanly before the dock tap registers.
+
+### Preventing Scroll
+`event.preventDefault()` is called on all canvas touch events. The listener must be registered with `{ passive: false }` since passive listeners cannot call `preventDefault`.
+
+No horizontal or vertical scrolling anywhere in the practice scene during play. The panel drawer is the only scrollable region, and only when explicitly opened — it is not in the touch path of the track.
 
 ### Touch Target Sizing
-On a 375px-wide phone with 8 lanes: each lane is ~47px wide. This meets the 44px minimum recommended touch target size. On narrower phones (320px): ~40px per lane — acceptable since users see the lane boundaries.
+- 375px phone, 8 lanes: ~47px per lane ✓ (≥ 44px minimum)
+- 320px phone, 8 lanes: ~40px per lane — acceptable, lane dividers are visible
 
-### Gesture: Slide-Up Panel
-- Swipe up from the dock bar to open the panel
-- Swipe down (or tap `↓`) to close it
-- Panel snaps to 60% screen height by default; draggable to full-screen
-- Implemented via CSS `transform: translateY` + touch drag tracking
+### Slide-Up Panel Gesture
+- Swipe up from the dock bar (or tap `[≡]`) → panel opens
+- Swipe down on the drag handle (or tap `[≡↓]`) → panel closes
+- Panel snaps to 60% screen height; draggable to full-screen (100vh − header)
 
-### Gesture: Lock In
-Tapping the `[🔴 Lock In]` dock button = pressing SPACE. No gesture shortcut for lock-in (avoids accidental commits).
+### Spectator Mode
+When in spectator mode, all `touchstart` / `touchmove` / `touchend` events on the canvas are ignored (no `noteOn` / `noteOff` calls). The canvas touch handler checks a `spectating` flag before processing. Tapping anywhere on the track in spectator mode does nothing.
+
+---
+
+## Lane Labels
+
+Lane note names (e.g. `C3`, `D#3`) are drawn directly onto the track canvas, always visible on mobile. They are drawn **last** in the canvas render pipeline so they sit on top of all notes, grid lines, and the now bar.
+
+**Position:** Horizontally centred within each lane column. Vertically pinned near the bottom of the canvas (`y = canvasHeight − 18px`).
+
+**Style:** 10px monospace, semi-transparent white (`rgba(255,255,255,0.55)`), so they read against both light and dark note colours without dominating.
+
+**On desktop:** Not shown by default (lanes are narrow and keyboard shortcuts are the primary interface). Shown only when scale locking is active (when note names are meaningful).
+
+**On mobile:** Always shown, since touch players need to know what pitch each lane plays.
+
+**Canvas draw order (updated):**
+1. Lane backgrounds (alternating dark)
+2. Lane dividers
+3. Beat grid lines
+4. Past-notes fade overlay
+5. Note gems (coloured rectangles)
+6. Now bar
+7. Player label ("YOU" or spectator indicator)
+8. **Lane note-name labels** ← drawn last, always on top
+
+---
+
+## Haptic Feedback
+
+Tapping a lane can trigger a short vibration via `navigator.vibrate()`. This is **off by default** since audio feedback is already present and vibration drains battery.
+
+**Setting:** In the settings sheet (header `[⚙]` icon), a haptic feedback control:
+```
+Haptic Feedback
+  ○ Off (default)
+  ○ Medium  (8ms pulse on note-on)
+  ○ Strong  (15ms pulse on note-on)
+```
+
+**Implementation:**
+```js
+function triggerHaptic(intensity) {
+  if (!navigator.vibrate) return;
+  if (intensity === 'medium') navigator.vibrate(8);
+  if (intensity === 'strong') navigator.vibrate(15);
+}
+```
+
+Called in `noteOn` only (not `noteOff`). Stored in `localStorage` so it persists across sessions. Falls back silently on browsers that don't support `navigator.vibrate` (iOS Safari).
 
 ---
 
 ## State Changes
 
-### New: `isMobile` detection
+### `Practice.jsx`
 ```js
-// In App.jsx or a hook
-const isMobile = window.innerWidth < 768 || 'ontouchstart' in window;
+panelOpen: boolean              // slide-up panel visibility
+instrumentPickerOpen: boolean   // instrument picker sheet visibility
+spectatingPlayerId: string|null // null = edit mode, else = watching this player
 ```
-Or use a CSS media query approach with a `useMediaQuery` hook. Controls which layout renders.
 
-### New: `panelOpen: boolean` in Practice component state
-Controls the slide-up panel visibility.
+### Refs
+```js
+activeTouches: useRef(new Map()) // Map<touchId, laneIdx> for multi-touch tracking
+```
 
-### New: `instrumentPickerOpen: boolean` in Practice component state
-Controls the instrument picker bottom sheet.
+### `App.jsx` (or shared hook)
+```js
+isMobile: boolean  // window.innerWidth < 768, updated on resize
+```
 
-### New: `activeTouches: Map<identifier, laneIdx>` ref in Practice
-Tracks which touch points correspond to which lanes. Needed for multi-touch note management.
+### `localStorage`
+```
+jamon_haptic: 'off' | 'medium' | 'strong'  // persisted haptic preference
+```
 
 ---
 
 ## New Components
 
 ### `Dock.jsx`
-Fixed bottom bar (72px). Accepts `mode` prop:
-- `'idle'` — `[+ New]` | `[ ]` | `[≡]`
-- `'recording'` — `[✕ Cancel]` | `[🔴 Lock In]` | `[≡]`
-- `'locked'` — `[+ New]` | `[▶ Playing / ⏸ Queue]` | `[≡]`
+Fixed 72px bottom bar. Props: `mode` (`'idle' | 'recording' | 'locked' | 'spectating'`), callbacks for each action.
+
+| Mode | Left | Centre | Right |
+|---|---|---|---|
+| `idle` | `[+ New]` | — | `[≡]` |
+| `recording` | `[✕ Cancel]` | `[🔴 Lock In]` | `[≡]` |
+| `locked` | `[+ New]` | `[▶/⏸ queue]` | `[≡]` |
+| `spectating` | `[◀ Your Track]` | — | `[≡]` |
 
 ### `PanelDrawer.jsx`
-Slide-up panel with:
-- Drag handle
-- Pattern list section (queue/delete controls per item)
-- Players section (mini track thumbnails)
-- Animated via CSS `transform: translateY` + `transition`
+Slide-up sheet. Two collapsible sections:
+- **Patterns** — list with queue/delete per item
+- **Players** — list with `[👁 Watch]` per remote player; tapping calls `onSpectate(playerId)`
+
+Animated with `transform: translateY` + `transition: transform 0.25s ease`.
 
 ### `InstrumentPickerSheet.jsx`
-Bottom sheet grid of instrument buttons. Animated same as PanelDrawer.
+Bottom sheet with a 2×N grid of instrument buttons. Tapping one calls `onCreate(instName)` and dismisses the sheet.
 
-### `MiniTrack.jsx`
-Read-only thumbnail of a remote player's track (~120×80px). Simplified rendering: just note rectangles, no labels.
+### `SpectatorOverlay.jsx`
+A translucent div absolutely positioned over the track canvas in spectator mode. Contains the "Watching · touch disabled" text. Intercepts and discards touch events via `pointer-events: none` on the canvas + `pointer-events: all` on this overlay (so taps don't fall through to the canvas).
 
 ---
 
 ## Implementation Notes
 
-### CSS Breakpoints
-Single breakpoint added to `index.css`:
+### CSS Breakpoints (`index.css`)
 ```css
-/* Mobile: < 768px */
+/* ── Tablet / landscape phone ─────────────────────── */
+@media (max-width: 1023px) {
+  .practice-layout { gap: 12px; }
+  .pattern-panel { width: 160px; min-width: 160px; }
+}
+
+/* ── Mobile portrait ──────────────────────────────── */
 @media (max-width: 767px) {
   .practice-layout { flex-direction: column; }
-  .pattern-panel { display: none; }   /* replaced by PanelDrawer */
-  .tracks { flex-direction: column; } /* stacked full-width tracks */
+  .pattern-panel   { display: none; }     /* replaced by PanelDrawer */
+  .track-area      { flex: 1; }
+  .tracks          { overflow: visible; } /* single track, no scroll */
 }
 ```
 
-### Track Canvas Resize
-`Track.jsx` currently uses hardcoded `TRACK_W = 200`, `TRACK_H = 560`. On mobile:
-- `TRACK_W` = `window.innerWidth` (passed as prop)
-- `TRACK_H` = `window.innerHeight - HEADER_H - DOCK_H`
-- A `ResizeObserver` on the wrapper div keeps the canvas sized to its container
-- Lane width recalculated as `canvasWidth / numLanes`
+### Dynamic Canvas Sizing (`Track.jsx`)
+`TRACK_W` and `TRACK_H` become props. A `ResizeObserver` on the wrapper `div` updates them:
+```js
+// Track.jsx
+useEffect(() => {
+  const ro = new ResizeObserver(([entry]) => {
+    setCanvasW(entry.contentRect.width);
+    setCanvasH(entry.contentRect.height);
+  });
+  ro.observe(wrapperRef.current);
+  return () => ro.disconnect();
+}, []);
+```
+Lane width recalculates as `canvasW / numLanes` on every render.
 
-### Touch Events on Canvas
-`Track.jsx` gains three touch handler props: `onTouchStart`, `onTouchMove`, `onTouchEnd`. In `Practice.jsx`, these compute the lane index and call the same `noteOn`/`noteOff` logic as keyboard handlers.
+### Touch Handlers (`Practice.jsx` + `Track.jsx`)
+`Track.jsx` exposes props: `onTouchStart`, `onTouchMove`, `onTouchEnd`. In `Practice.jsx`:
+```js
+function handleTrackTouchStart(e) {
+  e.preventDefault();
+  if (spectatingPlayerId) return;   // spectator: ignore
+  if (Tone.context.state !== 'running') {
+    Tone.start().then(() => setAudioActive(true));
+    return;
+  }
+  for (const t of e.changedTouches) {
+    const lane = laneFromTouch(t);
+    activeTouches.current.set(t.identifier, lane);
+    noteOn(lane);
+  }
+}
+```
 
-### Tone.js Audio Gate on Mobile
-`Tone.start()` is triggered on the first `touchstart` event (user gesture) rather than the first keypress. The `createPattern` tap on the dock also serves as a valid gesture. The `audio-hint` banner displays until audio is active.
+### Greyscale for Spectator Mode
+Applied via a CSS class on the track wrapper, not in canvas draw code — keeps the render path simple:
+```css
+.track-wrapper.spectating canvas {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+```
 
-### Landscape Detection
-A `useEffect` listens to `window.addEventListener('orientationchange')` or `resize` to switch between portrait (dock) and landscape (sidebar) layouts.
+### Landscape / Orientation Handling
+```js
+useEffect(() => {
+  const handler = () => setIsMobile(window.innerWidth < 768);
+  window.addEventListener('resize', handler);
+  return () => window.removeEventListener('resize', handler);
+}, []);
+```
+CSS handles the actual layout shift; `isMobile` is used to conditionally render `Dock` vs. nothing.
 
 ---
 
@@ -353,23 +480,25 @@ A `useEffect` listens to `window.addEventListener('orientationchange')` or `resi
 
 | File | Change |
 |---|---|
-| `client/src/components/Dock.jsx` | New — fixed bottom action bar |
-| `client/src/components/PanelDrawer.jsx` | New — slide-up panel |
+| `client/src/components/Dock.jsx` | New — context-aware bottom action bar |
+| `client/src/components/PanelDrawer.jsx` | New — slide-up panel with patterns + players |
 | `client/src/components/InstrumentPickerSheet.jsx` | New — bottom sheet instrument grid |
-| `client/src/components/MiniTrack.jsx` | New — read-only thumbnail track |
-| `client/src/components/Track.jsx` | Add touch events, dynamic canvas sizing via props |
-| `client/src/scenes/Practice.jsx` | Mobile layout branch, touch handlers, dock/panel state |
-| `client/src/scenes/WaitingRoom.jsx` | Stacked layout on mobile |
+| `client/src/components/SpectatorOverlay.jsx` | New — greyscale overlay + touch block |
+| `client/src/components/Track.jsx` | Touch event props, dynamic canvas sizing (ResizeObserver), lane label rendering |
+| `client/src/scenes/Practice.jsx` | Mobile layout branch, touch handlers, dock/panel/spectator state |
+| `client/src/scenes/WaitingRoom.jsx` | Stacked layout, full-width CTA, radio instrument picker |
 | `client/src/scenes/MainMenu.jsx` | Stacked buttons, full-width join input |
-| `client/src/index.css` | Add `@media (max-width: 767px)` responsive rules |
-| `client/index.html` | Confirm viewport meta (already present) |
+| `client/src/index.css` | Two responsive breakpoints, spectating styles, dock/panel/sheet styles |
+| `client/index.html` | Viewport meta already present — no change needed |
 
 ---
 
-## Open Questions
+## Resolved Design Decisions
 
-- **Landscape on tablet (iPad)**: Should the tablet get the desktop layout (sidebar) or the mobile layout (dock + panel)? Recommendation: use the desktop layout above 1024px width; mobile layout between 1024px and 768px gets the landscape sidebar variant.
-- **Haptic feedback**: Should tapping a lane trigger vibration (`navigator.vibrate(10)`)? Adds tactile feel for note-on. Opt-in or on by default?
-- **Note sustain on mobile**: If the player lifts their finger to navigate the dock mid-recording, should held notes be released? Yes — `touchcancel` and `touchend` always release. Players need to finish their phrase before tapping the dock.
-- **Visual lane labels on mobile**: Should the 8 lane columns show note name labels (e.g. `C3`) on the canvas, especially when scale locking is active? Useful for learning; could be toggled in settings.
-- **Scrolling between players' tracks**: In the panel, if there are 4+ players, should the mini-track section scroll horizontally or vertically? Horizontal scrolling feels more natural for a multi-player band display.
+| Question | Decision |
+|---|---|
+| Tablet breakpoint | Desktop ≥ 1024px · landscape sidebar 768–1023px · mobile portrait < 768px |
+| Haptic feedback | Off by default · optional Strong / Medium / Off in settings sheet · persisted to `localStorage` |
+| Note sustain on finger lift | `touchend` and `touchcancel` always fire `noteOff` — notes never hang |
+| Lane labels | Always visible on mobile · drawn last in canvas pipeline (on top of all elements) · centred at bottom of each lane column · 10px semi-transparent monospace |
+| Other players' tracks | No mini-tracks or scrolling in panel · Players section shows a list with `[👁 Watch]` per player · tapping Watch switches the **main track view** to spectator mode for that player · spectator view is greyscaled, touch-disabled, and labelled clearly · one tap on `[◀ Your Track]` in the dock returns to edit mode |
