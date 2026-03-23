@@ -183,6 +183,8 @@ export default function usePractice({ client, bandMembers = [], instSet = 'ROCK'
       for (const pat of plRef.current.getAllPatterns()) {
         if (!pat.lockedIn || !pat.queued) continue;
         const inst = pat.inst;
+        const patNotes = INSTRUMENT_SETS[pat.instSet]?.[pat.inst]?.notes;
+        if (!patNotes) continue;
         const seq = pat.buildSequence();
         for (const evt of seq) {
           const t = evt.time;
@@ -190,8 +192,8 @@ export default function usePractice({ client, bandMembers = [], instSet = 'ROCK'
             ? t >= prevNow && t < now
             : t >= prevNow || t < now;
           if (inWindow) {
-            if (evt.on) imRef.current.noteOn(inst, instRef.current.notes[evt.lane]);
-            else imRef.current.noteOff(inst, instRef.current.notes[evt.lane]);
+            if (evt.on) imRef.current.noteOn(inst, patNotes[evt.lane]);
+            else imRef.current.noteOff(inst, patNotes[evt.lane]);
           }
         }
       }
